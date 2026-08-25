@@ -1,0 +1,38 @@
+.godot/
+*.blend1
+*.blend2
+*.tmp
+*.bak
+*.log
+.DS_Store
+
+# Local/downloaded tooling
+Applications/
+*.zip
+
+# Blender-generated cache files
+__pycache__/
+*.pyc
+
+# Keep exported/runtime assets and source generators tracked.
+# Editable .blend sources are stored outside this Godot project.
+
+# Credentials and local environment files
+.env
+.env.*
+!.env.example
+*.pem
+*.key
+*credentials*
+*secret*
+
+# Godot import metadata is regenerated locally
+*.import
+
+# Generated Godot cache
+.godot/
+
+# Keep the preview image tracked; ignore other ad-hoc renders.
+*_preview.png
+!featureless_dummy_preview.png
+!humanoid_preview.png

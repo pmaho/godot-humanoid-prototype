@@ -3,8 +3,10 @@ sys.path.insert(0, '/home/petteri/blender_py/numpy314')
 import bpy
 from mathutils import Vector
 
-BLEND='/home/petteri/godot_humanoid_prototype/featureless_dummy.blend'
-OUT='/home/petteri/godot_humanoid_prototype/featureless_dummy_preview.png'
+import os
+MODEL_NAME=os.environ.get('MODEL_NAME','featureless_dummy')
+BLEND='/home/petteri/godot_humanoid_prototype/'+MODEL_NAME+'.blend'
+OUT='/home/petteri/godot_humanoid_prototype/'+MODEL_NAME+'_preview.png'
 bpy.ops.wm.open_mainfile(filepath=BLEND)
 scene=bpy.context.scene
 scene.render.engine='BLENDER_WORKBENCH'

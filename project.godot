@@ -3,7 +3,7 @@
 config_version=5
 
 [application]
-config/name="Humanoid Prototype"
+config/name="Humanoid Dummy Test Gallery"
 run/main_scene="res://main.tscn"
 
 [display]

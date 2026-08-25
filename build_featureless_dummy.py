@@ -4,7 +4,9 @@ import bpy, math, os
 from mathutils import Vector
 
 OUT = '/home/petteri/godot_humanoid_prototype'
-GLB = os.path.join(OUT, 'featureless_dummy.glb')
+MODEL_NAME = os.environ.get('MODEL_NAME', 'featureless_dummy')
+MODEL_COLOR = tuple(float(v) for v in os.environ.get('MODEL_COLOR', '0.46,0.49,0.53').split(','))
+GLB = os.path.join(OUT, MODEL_NAME + '.glb')
 os.makedirs(OUT, exist_ok=True)
 bpy.ops.wm.read_factory_settings(use_empty=True)
 
@@ -14,7 +16,7 @@ def mat(name, color, metallic=0.0, rough=0.7):
     bs=m.node_tree.nodes.get('Principled BSDF'); bs.inputs['Base Color'].default_value=(*color,1); bs.inputs['Metallic'].default_value=metallic; bs.inputs['Roughness'].default_value=rough
     return m
 # Featureless mannequin: one neutral material, with no face, hair, clothing, or details.
-dummy=mat('DummyBody',(0.46,0.49,0.53), metallic=0.0, rough=0.82)
+dummy=mat('DummyBody',MODEL_COLOR, metallic=0.0, rough=0.82)
 skin=shirt=pants=shoes=hair=white=dummy
 
 parts=[]
@@ -107,12 +109,12 @@ for _act in bpy.data.actions:
     _act.use_fake_user = True
 
 # save editable source and export
-bpy.ops.wm.save_as_mainfile(filepath=os.path.join(OUT, 'featureless_dummy.blend'))
+bpy.ops.wm.save_as_mainfile(filepath=os.path.join(OUT, MODEL_NAME + '.blend'))
 bpy.ops.object.select_all(action='DESELECT'); arm.select_set(True); bpy.context.view_layer.objects.active=arm
 for o in parts: o.select_set(True)
 bpy.ops.export_scene.gltf(filepath=GLB, export_format='GLB', export_animations=True, export_animation_mode='ACTIONS', export_skins=True, export_apply=False)
 print('SAVED',GLB)
-print('SAVED',os.path.join(OUT, 'featureless_dummy.blend'))
+print('SAVED',os.path.join(OUT, MODEL_NAME + '.blend'))
 # validation info
 print('ACTIONS', [a.name for a in bpy.data.actions])
 print('PARTS',len(parts),'BONES',len(arm.data.bones))

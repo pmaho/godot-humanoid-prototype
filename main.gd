@@ -2,78 +2,105 @@ extends Node3D
 
 @onready var player: CharacterBody3D = $CharacterBody3D
 @onready var model: Node3D = $CharacterBody3D/Model
-@onready var anim: AnimationPlayer = $CharacterBody3D/AnimationPlayer
 
 const SPEED := 2.5
-var model_scene: Node3D
-var model_anim_players: Array[AnimationPlayer] = []
+const UAL1 := "res://assets/ual/UAL1_Standard.glb"
+const UAL2 := "res://assets/ual/UAL2_Standard.glb"
+
+var player_anim: AnimationPlayer
 var model_instances: Array[Node3D] = []
-const MODEL_ASSETS := [
-    {"path": "res://dummy_gray.glb", "position": Vector3(-1.8, 0.0, 0.0)},
-    {"path": "res://dummy_blue.glb", "position": Vector3(-0.6, 0.0, 0.0)},
-    {"path": "res://dummy_orange.glb", "position": Vector3(0.6, 0.0, 0.0)},
-    {"path": "res://dummy_green.glb", "position": Vector3(1.8, 0.0, 0.0)},
+var player_instance: Node3D
+
+const DUMMY_ASSETS := [
+	{"path": UAL2, "position": Vector3(-1.8, 0.0, 0.0), "anim": "Zombie_Walk_Fwd"},
+	{"path": UAL2, "position": Vector3(-0.6, 0.0, 0.0), "anim": "TreeChopping"},
+	{"path": UAL2, "position": Vector3(0.6, 0.0, 0.0), "anim": "Sword_Idle"},
+	{"path": "res://featureless_dummy.glb", "position": Vector3(1.8, 0.0, 0.0), "anim": "walk"},
 ]
 
 func _ready() -> void:
-    var capsule := CapsuleShape3D.new()
-    capsule.radius = 0.28
-    capsule.height = 1.8
-    $CharacterBody3D/CollisionShape3D.shape = capsule
-    $CharacterBody3D/CollisionShape3D.position.y = 0.9
-    for item in MODEL_ASSETS:
-        var scene_asset: PackedScene = load(item.path)
-        if scene_asset == null:
-            push_error("Could not load %s" % item.path)
-            continue
-        var instance: Node3D = scene_asset.instantiate()
-        instance.position = item.position
-        model.add_child(instance)
-        model_instances.append(instance)
-        var asset_anim := instance.get_node_or_null("AnimationPlayer") as AnimationPlayer
-        if asset_anim != null:
-            model_anim_players.append(asset_anim)
-            if asset_anim.has_animation("idle"):
-                asset_anim.play("idle")
+	var capsule := CapsuleShape3D.new()
+	capsule.radius = 0.28
+	capsule.height = 1.8
+	$CharacterBody3D/CollisionShape3D.shape = capsule
+	$CharacterBody3D/CollisionShape3D.position.y = 0.9
+	player_instance = _add_model(UAL1, Vector3.ZERO, "Idle")
+	for item in DUMMY_ASSETS:
+		_add_model(item.path, item.position, item.anim)
+
+func _add_model(path: String, pos: Vector3, anim_name: String) -> Node3D:
+	var scene_asset: PackedScene = load(path)
+	if scene_asset == null:
+		push_error("Could not load %s" % path)
+		return null
+	var instance: Node3D = scene_asset.instantiate()
+	instance.position = pos
+	model.add_child(instance)
+	model_instances.append(instance)
+	var asset_anim := _find_anim_player(instance)
+	if asset_anim != null:
+		if asset_anim.has_animation(anim_name):
+			asset_anim.play(anim_name)
+		elif asset_anim.has_animation("Idle"):
+			asset_anim.play("Idle")
+	if instance == player_instance:
+		player_anim = asset_anim
+	return instance
+
+func _find_anim_player(n: Node) -> AnimationPlayer:
+	if n is AnimationPlayer:
+		return n
+	for c in n.get_children():
+		var r := _find_anim_player(c)
+		if r != null:
+			return r
+	return null
 
 func _physics_process(_delta: float) -> void:
-    var input_vec := Input.get_vector("move_left", "move_right", "move_forward", "move_back")
-    var direction := Vector3(input_vec.x, 0.0, input_vec.y)
-    player.velocity.x = direction.x * SPEED
-    player.velocity.z = direction.z * SPEED
-    player.move_and_slide()
-    if direction.length_squared() > 0.01:
-        player.look_at(player.global_position + direction, Vector3.UP)
-        for asset_anim in model_anim_players:
-            if asset_anim.has_animation("walk") and asset_anim.current_animation != "walk":
-                asset_anim.play("walk")
-        for instance in model_instances:
-            instance.rotation.y = lerp_angle(instance.rotation.y, player.rotation.y, 0.15)
-    else:
-        for asset_anim in model_anim_players:
-            if asset_anim.has_animation("idle") and asset_anim.current_animation != "idle":
-                asset_anim.play("idle")
+	var input_vec := Input.get_vector("move_left", "move_right", "move_forward", "move_back")
+	var direction := Vector3(input_vec.x, 0.0, input_vec.y)
+	player.velocity.x = direction.x * SPEED
+	player.velocity.z = direction.z * SPEED
+	player.move_and_slide()
+	if direction.length_squared() > 0.01:
+		player.look_at(player.global_position + direction, Vector3.UP)
+		_play_current("Walk", "walk")
+		for instance in model_instances:
+			instance.rotation.y = lerp_angle(instance.rotation.y, player.rotation.y, 0.15)
+	else:
+		_play_current("Idle", "idle")
+
+func _play_current(ual_name: String, dummy_name: String) -> void:
+	if player_anim != null and player_anim.current_animation != ual_name:
+		if player_anim.has_animation(ual_name):
+			player_anim.play(ual_name)
+		# dummies keep their loops; the featureless dummy toggles walk/idle
+		for instance in model_instances:
+			if instance == player_instance:
+				continue
+			var a := _find_anim_player(instance)
+			if a != null:
+				var target := ual_name if a.has_animation(ual_name) else dummy_name
+				if a.has_animation(target) and a.current_animation != target:
+					a.play(target)
 
 func _process(_delta: float) -> void:
-    $Camera3D.look_at(player.global_position + Vector3(0, 0.9, 0), Vector3.UP)
-    $UI/Label.text = "WASD to move — %s" % ("WALK" if player.velocity.length() > 0.1 else "IDLE")
-
-func _create_world() -> void:
-    pass
+	$Camera3D.look_at(player.global_position + Vector3(0, 0.9, 0), Vector3.UP)
+	$UI/Label.text = "WASD to move — %s" % ("WALK" if player.velocity.length() > 0.1 else "IDLE")
 
 func _enter_tree() -> void:
-    var env := WorldEnvironment.new()
-    var environment := Environment.new()
-    environment.background_mode = Environment.BG_COLOR
-    environment.background_color = Color(0.055, 0.07, 0.1)
-    environment.ambient_light_source = Environment.AMBIENT_SOURCE_COLOR
-    environment.ambient_light_color = Color(0.5, 0.55, 0.7)
-    environment.ambient_light_energy = 0.8
-    env.environment = environment
-    add_child(env)
-    var ground := MeshInstance3D.new()
-    var box := BoxMesh.new(); box.size = Vector3(10, 0.1, 10)
-    ground.mesh = box; ground.position.y = -0.1
-    var mat := StandardMaterial3D.new(); mat.albedo_color = Color(0.15, 0.18, 0.22); box.material = mat
-    add_child(ground)
-    var shape := CollisionShape3D.new(); var body := StaticBody3D.new(); var cs := BoxShape3D.new(); cs.size = Vector3(10,0.1,10); shape.shape=cs; shape.position.y=-0.1; body.add_child(shape); add_child(body)
+	var env := WorldEnvironment.new()
+	var environment := Environment.new()
+	environment.background_mode = Environment.BG_COLOR
+	environment.background_color = Color(0.055, 0.07, 0.1)
+	environment.ambient_light_source = Environment.AMBIENT_SOURCE_COLOR
+	environment.ambient_light_color = Color(0.5, 0.55, 0.7)
+	environment.ambient_light_energy = 0.8
+	env.environment = environment
+	add_child(env)
+	var ground := MeshInstance3D.new()
+	var box := BoxMesh.new(); box.size = Vector3(10, 0.1, 10)
+	ground.mesh = box; ground.position.y = -0.1
+	var mat := StandardMaterial3D.new(); mat.albedo_color = Color(0.15, 0.18, 0.22); box.material = mat
+	add_child(ground)
+	var shape := CollisionShape3D(); var body := StaticBody3D.new(); var cs := BoxShape3D.new(); cs.size = Vector3(10,0.1,10); shape.shape=cs; shape.position.y=-0.1; body.add_child(shape); add_child(body)

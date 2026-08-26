@@ -103,4 +103,4 @@ func _enter_tree() -> void:
 	ground.mesh = box; ground.position.y = -0.1
 	var mat := StandardMaterial3D.new(); mat.albedo_color = Color(0.15, 0.18, 0.22); box.material = mat
 	add_child(ground)
-	var shape := CollisionShape3D(); var body := StaticBody3D.new(); var cs := BoxShape3D.new(); cs.size = Vector3(10,0.1,10); shape.shape=cs; shape.position.y=-0.1; body.add_child(shape); add_child(body)
+	var shape := CollisionShape3D.new(); var body := StaticBody3D.new(); var cs := BoxShape3D.new(); cs.size = Vector3(10,0.1,10); shape.shape=cs; shape.position.y=-0.1; body.add_child(shape); add_child(body)

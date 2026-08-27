@@ -1,43 +1,29 @@
 extends SceneTree
 
-func _init() -> void:
-	var p := OS.get_cmdline_user_args()[0]
-	var scene: PackedScene = load(p)
+func _init():
+	var scene: PackedScene = load("res://assets/ual_mixamo.glb")
 	if scene == null:
-		print("FAIL load: ", p)
-		quit(1)
-		return
-	var root: Node3D = scene.instantiate()
-	var ap := _find_anim_player(root)
-	if ap == null:
-		print(p, ": no AnimationPlayer")
-		quit(1)
-		return
-	var anims: PackedStringArray = ap.get_animation_list()
-	var names: String = ""
+		print("FAIL: cannot load glb")
+		quit(1); return
+	var inst = scene.instantiate()
+	root.add_child(inst)
+	var anim: AnimationPlayer = null
+	var skin: Node3D = null
+	for n in inst.find_children("*", "AnimationPlayer"):
+		anim = n
+	for n in inst.find_children("*", "SkinnedMeshInstance3D"):
+		skin = n
+	if anim == null:
+		print("FAIL: no AnimationPlayer"); quit(1); return
+	var anims = anim.get_animation_list()
+	print("ANIMS: ", anims.size())
+	var origin = skin.global_position if skin else Vector3.ZERO
 	for a in anims:
-		names += a + " | "
-	print(p, " count=", anims.size())
-	print("  ", names)
-	var sk := _find_skel(root)
-	if sk != null:
-		print("  skeleton bones=", sk.get_bone_count())
+		anim.play(a)
+		var len = anim.current_animation_length
+		anim.seek(maxf(len - 0.02, 0.0), true)
+		var p = skin.global_position if skin else Vector3.ZERO
+		var drift = p.distance_to(origin) if skin else 0.0
+		print("  %s: len=%.2f end_pos=(%.2f,%.2f,%.2f) drift=%.3f" % [a, len, p.x, p.y, p.z, drift])
+	print("PROBE OK")
 	quit(0)
-
-func _find_anim_player(n: Node) -> AnimationPlayer:
-	if n is AnimationPlayer:
-		return n
-	for c in n.get_children():
-		var r := _find_anim_player(c)
-		if r != null:
-			return r
-	return null
-
-func _find_skel(n: Node) -> Skeleton3D:
-	if n is Skeleton3D:
-		return n
-	for c in n.get_children():
-		var r := _find_skel(c)
-		if r != null:
-			return r
-	return null
